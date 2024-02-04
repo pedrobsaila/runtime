@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "lldb",
+            "request": "launch",
+            "breakpointMode": "path",
+            "program": "/workspaces/runtime/artifacts/bin/coreclr/linux.x64.Debug/corerun",
+            "args": [ "/workspaces/runtime/artifacts/bin/PimpMyApp/Debug/net9.0/PimpMyApp.dll" ],
+            "cwd": "/workspaces/runtime/artifacts/bin/coreclr/linux.x64.Debug",
+            "env": {
+                "CORE_LIBRARIES":"/workspaces/runtime/artifacts/bin/runtime/net9.0-linux-Debug-x64",
+                "VSDebugger_ValidateDotnetDebugLibSignatures": "0",
+                "DOTNET_JitDisasm": "Bambala",
+                "DOTNET_TieredCompilation": "0",
+                "DOTNET_EnableDiagnostics": "0"
+            },
+            "relativePathBase": "/workspaces/runtime/src/coreclr",
+            "sourceLanguages": ["cpp"],
+            "initCommands": ["settings set target.disable-aslr false"]
+        },
+      {
+        "name": "My Configuration", // Any identifiable name you might like.
+        "type": "coreclr", // We want to debug a CoreCLR app.
+        "request": "launch", // Start the app with the debugger attached.
+        "program": "/workspaces/runtime/artifacts/bin/coreclr/linux.x64.Checked/corerun", // Point to your 'corerun', in order to run the app using your build.
+        "args": ["/workspaces/runtime/artifacts/bin/PimpMyApp/Debug/net9.0/PimpMyApp.dll"], // First argument is your app, second and on are the app's arguments.
+        "cwd": "/workspaces/runtime/artifacts/bin/coreclr/linux.x64.Checked", // Can be anywhere. For simplicity, choose where your app is stationed. Otherwise, you have to adjust paths in the other parameters.
+        "stopAtEntry": true, // This can be either. Keeping it to 'true' allows you to see when the debugger is ready.
+        "console": "internalConsole", // Use VSCode's internal console instead of launching more terminals.
+        "justMyCode": false, // Be able to debug into native assemblies.
+        "enableStepFiltering": false, // Be able to debug into class initializations, field accessors, etc.
+        "env": {
+            "CORE_LIBRARIES":"/workspaces/runtime/artifacts/bin/runtime/net9.0-linux-Release-x64",
+            "VSDebugger_ValidateDotnetDebugLibSignatures": "0",
+            "DOTNET_JitDisasm": "Bambala",
+            "DOTNET_TieredCompilation": "0"
+        }
+      }
+    ]
+  }
