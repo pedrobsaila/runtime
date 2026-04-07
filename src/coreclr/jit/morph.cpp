@@ -15477,8 +15477,7 @@ bool Compiler::fgCanTailCallViaJitHelper(GenTreeCall* call)
 
 //------------------------------------------------------------------------
 // fgMorphReduceAddOrSubOps: reduce successive variable adds/subs into a single multiply,
-// e.g., i + i + i + i => i * 4.
-// e.g., i - i - i - i => - i * 2.
+// e.g., i + 3 * i + i - 4 * i  + i => i * 2.
 //
 // Arguments:
 //    tree - tree for reduction
@@ -15507,53 +15506,53 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
     GenTree* lclVarTree = tree->AsOp()->gtOp2;
     GenTree* consTree   = tree->AsOp()->gtOp1;
 
-    GenTree* op1 = consTree;
-    GenTree* op2 = lclVarTree;
+    GenTree*     op1       = consTree;
+    ssize_t      op1Scalar = 0;
+    unsigned int op1lclNum = 0;
+    GenTree*     op2       = lclVarTree;
+    ssize_t      op2Scalar = 0;
+    unsigned int op2lclNum = 0;
 
-    if ((!op2->OperIs(GT_LCL_VAR) && (!op2->OperIs(GT_IND) || !op2->AsIndir()->Base()->OperIs(GT_LCL_VAR))) ||
-        !varTypeIsIntegral(op2))
+    if (!op2->OperIsIntScalarMulLclVar(&op2Scalar, &op2lclNum) || !varTypeIsIntegral(op2))
     {
         return tree;
     }
 
-    int      foldCount = 0;
-    unsigned lclNum    = op2->OperIs(GT_LCL_VAR) ? op2->AsLclVarCommon()->GetLclNum()
-                                                 : op2->AsIndir()->Base()->AsLclVarCommon()->GetLclNum();
+    ssize_t      foldCount = 0;
+    unsigned int lclNum    = op2lclNum;
 
-    // Search for pattern of shape ADD(ADD(ADD(lclNum, lclNum), lclNum), lclNum) OR SUB(SUB(SUB(lclNum, lclNum),
-    // lclNum), lclNum).
+    // Search for pattern of shape ADD(SUB(ADD(lclNum, lclNum), lclNum), lclNum).
     while (true)
     {
         // ADD(lclNum, lclNum) OR SUB(lclNum, lclNum), end of tree
-        if ((op1->OperIs(GT_LCL_VAR) && op1->AsLclVarCommon()->GetLclNum() == lclNum && op2->OperIs(GT_LCL_VAR) &&
-             op2->AsLclVarCommon()->GetLclNum() == lclNum) ||
-            (op1->OperIs(GT_IND) && op1->AsIndir()->Base()->OperIs(GT_LCL_VAR) &&
-             op1->AsIndir()->Base()->AsLclVarCommon()->GetLclNum() == lclNum && op2->OperIs(GT_IND) &&
-             op2->AsIndir()->Base()->OperIs(GT_LCL_VAR) &&
-             op2->AsIndir()->Base()->AsLclVarCommon()->GetLclNum() == lclNum))
+        if ((op1->OperIsIntScalarMulLclVar(&op1Scalar, &op1lclNum) && op1lclNum == lclNum) &&
+            (op2->OperIsIntScalarMulLclVar(&op2Scalar, &op2lclNum) && op2lclNum == lclNum))
         {
             if (targetOp == GT_ADD)
             {
-                foldCount += 2;
-            }
-            break;
-        }
-        // ADD(ADD(X, Y), lclNum) OR SUB(SUB(X, Y), lclNum), keep descending
-        else if (op1->OperIs(targetOp) && !op1->gtOverflow() &&
-                 ((op2->OperIs(GT_LCL_VAR) && op2->AsLclVarCommon()->GetLclNum() == lclNum) ||
-                  (op2->OperIs(GT_IND) && op2->AsIndir()->Base()->OperIs(GT_LCL_VAR) &&
-                   op2->AsIndir()->Base()->AsLclVarCommon()->GetLclNum() == lclNum)))
-        {
-            if (targetOp == GT_ADD)
-            {
-                foldCount++;
+                foldCount += op1Scalar + op2Scalar;
             }
             else
             {
-                foldCount--;
+                foldCount += op1Scalar - op2Scalar;
             }
-            op2 = op1->AsOp()->gtOp2;
-            op1 = op1->AsOp()->gtOp1;
+            break;
+        }
+        // ADD(SUB(X, Y), lclNum), keep descending
+        else if (op1->OperIs(GT_ADD, GT_SUB) && !op1->gtOverflow() &&
+                 (op2->OperIsIntScalarMulLclVar(&op2Scalar, &op2lclNum) && op2lclNum == lclNum))
+        {
+            if (targetOp == GT_ADD)
+            {
+                foldCount += op2Scalar;
+            }
+            else
+            {
+                foldCount -= op2Scalar;
+            }
+            targetOp = op1->OperGet();
+            op2      = op1->AsOp()->gtOp2;
+            op1      = op1->AsOp()->gtOp1;
         }
         // Any other case is a pattern we won't attempt to fold for now.
         else
