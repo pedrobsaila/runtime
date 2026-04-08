@@ -8645,6 +8645,7 @@ public:
     GenTree*     optVNBasedFoldExpr_Call_Memmove(GenTreeCall* call);
     GenTree*     optVNBasedFoldExpr_Call_Memset(GenTreeCall* call);
     GenTree*     optVNBasedFoldExpr_Call_Memcmp(GenTreeCall* call);
+    GenTree*     optVNBasedFoldExpr_AddSub(BasicBlock* block, GenTree* parent, GenTree* tree);
 
     AssertionIndex GetAssertionCount()
     {

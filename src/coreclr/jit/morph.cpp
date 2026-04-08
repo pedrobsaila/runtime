@@ -7522,7 +7522,10 @@ GenTree* Compiler::fgMorphSmpOp(GenTree* tree, MorphAddrContext* mac, bool* optA
     {
         GenTree* morphed = fgMorphReduceAddOrSubOps(tree);
         if (morphed != tree)
+        {
+            DEBUG_DESTROY_NODE(tree);
             return fgMorphTree(morphed);
+        }
     }
 
     /*-------------------------------------------------------------------------
@@ -15566,10 +15569,7 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
     // accordingly
     consTree->BashToConst(foldCount, tree->TypeGet());
 
-    GenTree* morphed = gtNewOperNode(GT_MUL, tree->TypeGet(), lclVarTree, consTree);
-    DEBUG_DESTROY_NODE(tree);
-
-    return morphed;
+    return gtNewOperNode(GT_MUL, tree->TypeGet(), lclVarTree, consTree);
 }
 
 //------------------------------------------------------------------------
