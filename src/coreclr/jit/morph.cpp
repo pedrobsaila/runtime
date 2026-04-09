@@ -15568,7 +15568,6 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
     // V0 - V0 ... - V0 becomes V0 * (- foldCount + 2), where postorder transform will optimize
     // accordingly
     consTree->BashToConst(foldCount, tree->TypeGet());
-
     return gtNewOperNode(GT_MUL, tree->TypeGet(), lclVarTree, consTree);
 }
 

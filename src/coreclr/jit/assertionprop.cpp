@@ -2672,10 +2672,21 @@ GenTree* Compiler::optVNBasedFoldExpr_AddSub(BasicBlock* block, GenTree* parent,
 
     ValueNumPair vnPair = tree->gtVNPair;
     ValueNum     vnCnv  = vnStore->VNConservativeNormalValue(vnPair);
-    VNFuncApp    funcApp;
+    VNFuncApp    vnFuncApp;
 
-    if (!vnStore->IsVNFunc(vnCnv) || !vnStore->GetVNFunc(vnCnv, &funcApp) || !funcApp.FuncIs(VNF_ADD, VNF_SUB) ||
+    if (!vnStore->GetVNFunc(vnCnv, &vnFuncApp) || !vnFuncApp.FuncIs(VNF_ADD, VNF_SUB) ||
         vnStore->TypeOfVN(vnCnv) != TYP_INT)
+    {
+        return nullptr;
+    }
+
+    ValueNum  vnOp1 = vnFuncApp.m_args[0];
+    ValueNum  vnOp2 = vnFuncApp.m_args[1];
+    VNFuncApp vnFuncAppOp1;
+    VNFuncApp vnFuncAppOp2;
+
+    if (!vnStore->GetVNFunc(vnOp1, &vnFuncAppOp1) || !vnFuncAppOp1.FuncIs(VNF_InitVal, VNF_ADD, VNF_SUB) ||
+        !vnStore->GetVNFunc(vnOp2, &vnFuncAppOp2) || !vnFuncAppOp2.FuncIs(VNF_InitVal, VNF_ADD, VNF_SUB))
     {
         return nullptr;
     }
