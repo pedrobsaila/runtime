@@ -2013,8 +2013,6 @@ public:
     // Sets the GTF flag equivalent for the regIndex'th register of a multi-reg node.
     void SetRegSpillFlagByIdx(GenTreeFlags flags, int regIndex);
 
-    bool OperIsIntScalarMulLclVar(ssize_t* scalar, unsigned int* lclNum);
-
 #ifdef TARGET_ARM64
     bool NeedsConsecutiveRegisters() const;
 #endif
@@ -10582,69 +10580,6 @@ inline GenTree* GenTree::GetIndirOrArrMetaDataAddr()
     {
         return AsArrCommon()->ArrRef();
     }
-}
-
-inline bool GenTree::OperIsIntScalarMulLclVar(ssize_t* scalar, unsigned int* lclNum)
-{
-    if (OperIs(GT_LCL_VAR))
-    {
-        *scalar = 1;
-        *lclNum = AsLclVar()->GetLclNum();
-        return true;
-    }
-    else if (OperIs(GT_IND) && AsIndir()->Base()->OperIs(GT_LCL_VAR))
-    {
-        *scalar = 1;
-        *lclNum = AsIndir()->Base()->AsLclVar()->GetLclNum();
-        return true;
-    }
-
-    GenTree* op          = this;
-    bool     reverseSign = false;
-    if (OperIs(GT_NEG))
-    {
-        op          = op->gtGetOp1();
-        reverseSign = true;
-    }
-
-    if (!op->OperIs(GT_MUL))
-    {
-        return false;
-    }
-
-    GenTree* op1 = op->gtGetOp1();
-    GenTree* op2 = op->gtGetOp2();
-
-    if (op1->IsIntegralConst() && op2->OperIs(GT_LCL_VAR))
-    {
-        *scalar = op1->AsIntConCommon()->IconValue();
-        *lclNum = op2->AsLclVar()->GetLclNum();
-    }
-    else if (op2->IsIntegralConst() && op1->OperIs(GT_LCL_VAR))
-    {
-        *scalar = op2->AsIntConCommon()->IconValue();
-        *lclNum = op1->AsLclVar()->GetLclNum();
-    }
-    else if (op1->IsIntegralConst() && op2->OperIs(GT_IND) && op2->AsIndir()->Base()->OperIs(GT_LCL_VAR))
-    {
-        *scalar = op1->AsIntConCommon()->IconValue();
-        *lclNum = op2->AsIndir()->Base()->AsLclVar()->GetLclNum();
-    }
-    else if (op2->IsIntegralConst() && op1->OperIs(GT_IND) && op1->AsIndir()->Base()->OperIs(GT_LCL_VAR))
-    {
-        *scalar = op2->AsIntConCommon()->IconValue();
-        *lclNum = op1->AsIndir()->Base()->AsLclVar()->GetLclNum();
-    }
-    else
-    {
-        return false;
-    }
-
-    if (reverseSign)
-    {
-        *scalar = -(*scalar);
-    }
-    return true;
 }
 
 /*****************************************************************************/

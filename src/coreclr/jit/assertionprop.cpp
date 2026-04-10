@@ -2684,10 +2684,20 @@ GenTree* Compiler::optVNBasedFoldExpr_AddSub(BasicBlock* block, GenTree* parent,
     ValueNum  vnOp2 = vnFuncApp.m_args[1];
     VNFuncApp vnFuncAppOp1;
     VNFuncApp vnFuncAppOp2;
+    int       cns = 0;
 
-    if (!vnStore->GetVNFunc(vnOp1, &vnFuncAppOp1) ||
-        !vnFuncAppOp1.FuncIs(VNF_InitVal, VNF_MemOpaque, VNF_ADD, VNF_SUB) ||
-        !vnStore->GetVNFunc(vnOp2, &vnFuncAppOp2) || !vnFuncAppOp2.FuncIs(VNF_InitVal, VNF_MemOpaque, VNF_ADD, VNF_SUB))
+    if (vnStore->IsVNIntegralConstant(vnOp1, &cns) && cns == 0)
+    {
+        return tree->OperIs(GT_ADD) ? tree->gtGetOp2() : gtNewOperNode(GT_NEG, tree->TypeGet(), tree->gtGetOp2());
+    }
+    else if (vnStore->IsVNIntegralConstant(vnOp2, &cns) && cns == 0)
+    {
+        return tree->gtGetOp1();
+    }
+    else if (!vnStore->GetVNFunc(vnOp1, &vnFuncAppOp1) ||
+             !vnFuncAppOp1.FuncIs(VNF_InitVal, VNF_MemOpaque, VNF_ADD, VNF_SUB) ||
+             !vnStore->GetVNFunc(vnOp2, &vnFuncAppOp2) ||
+             !vnFuncAppOp2.FuncIs(VNF_InitVal, VNF_MemOpaque, VNF_ADD, VNF_SUB))
     {
         return nullptr;
     }
