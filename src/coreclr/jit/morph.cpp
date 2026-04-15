@@ -15567,6 +15567,28 @@ bool Compiler::fgMorphOperIsIntScalarMulLclVar(GenTree* op, ssize_t* scalar, uns
             return false;
         }
     }
+    else if (internalOp->OperIs(GT_XOR))
+    {
+        GenTree* op1 = internalOp->gtGetOp1();
+        GenTree* op2 = internalOp->gtGetOp2();
+
+        if (op1->OperIs(GT_LCL_VAR) && op2->OperIs(GT_LCL_VAR) &&
+            op1->AsLclVar()->GetLclNum() == op2->AsLclVar()->GetLclNum())
+        {
+            *scalar = 0;
+            *lclNum = op2->AsLclVar()->GetLclNum();
+        }
+        else if (op1->OperIs(GT_COMMA) && op1->gtGetOp1()->OperIs(GT_STORE_LCL_VAR) && op2->OperIs(GT_LCL_VAR) &&
+                 op1->gtGetOp1()->AsLclVar()->GetLclNum() == op2->AsLclVar()->GetLclNum())
+        {
+            *scalar = 0;
+            *lclNum = op1->gtGetOp1()->AsLclVar()->GetLclNum();
+        }
+        else
+        {
+            return false;
+        }
+    }
     else
     {
         return false;
@@ -15668,13 +15690,17 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
     // V0 + V0 ... + V0 becomes V0 * foldCount,
     // V0 - V0 ... - V0 becomes V0 * (- foldCount + 2), where postorder transform will optimize
     // accordingly
-
-    if (foldCount == -1)
+    if (foldCount == 0)
     {
-        return gtNewOperNode(GT_NEG, tree->TypeGet(), op1->OperIs(GT_MUL, GT_LSH) ? op1->gtGetOp1() : op1);
+        return gtNewOperNode(GT_XOR, tree->TypeGet(), op1,
+                             op1->OperIs(GT_LCL_VAR) ? op1 : gtCloneExpr(op1->gtEffectiveVal()));
+    }
+    else if (foldCount == -1)
+    {
+        return gtNewOperNode(GT_NEG, tree->TypeGet(), op1->OperIs(GT_MUL, GT_LSH, GT_XOR) ? op1->gtGetOp1() : op1);
     }
 
-    return gtNewOperNode(GT_MUL, tree->TypeGet(), op1->OperIs(GT_MUL, GT_LSH) ? op1->gtGetOp1() : op1,
+    return gtNewOperNode(GT_MUL, tree->TypeGet(), op1->OperIs(GT_MUL, GT_LSH, GT_XOR) ? op1->gtGetOp1() : op1,
                          gtNewIconNode(foldCount, tree->TypeGet()));
 }
 
