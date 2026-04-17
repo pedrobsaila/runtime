@@ -2687,7 +2687,7 @@ GenTree* Compiler::optVNBasedFoldExpr_AddSub(BasicBlock* block, GenTree* parent,
 
     if (vnStore->IsVNIntegralConstant(vnOp1, &cns) && cns == 0)
     {
-        return tree->OperIs(GT_ADD) ? tree->gtGetOp2() : gtNewOperNode(GT_NEG, tree->TypeGet(), tree->gtGetOp2());
+        return tree->OperIs(GT_ADD) ? tree->gtGetOp2() : tree;
     }
     else if (vnStore->IsVNIntegralConstant(vnOp2, &cns) && cns == 0)
     {

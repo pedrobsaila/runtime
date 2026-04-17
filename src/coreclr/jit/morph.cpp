@@ -15491,19 +15491,30 @@ bool Compiler::fgMorphOperIsIntScalarMulLclVar(GenTree* op, ssize_t* scalar, uns
         *lclNum = op->gtGetOp1()->AsLclVar()->GetLclNum();
         return true;
     }
-
-    GenTree* internalOp  = op;
-    bool     reverseSign = false;
-    if (op->OperIs(GT_NEG))
+    else if (op->OperIs(GT_SUB) && op->gtGetOp1()->IsIntegralConst(0))
     {
-        internalOp  = op->gtGetOp1();
-        reverseSign = true;
+        if (op->gtGetOp2()->OperIs(GT_LCL_VAR))
+        {
+            *scalar = 1;
+            *lclNum = op->gtGetOp2()->AsLclVar()->GetLclNum();
+            return true;
+        }
+        else if (op->gtGetOp2()->OperIs(GT_COMMA) && op->gtGetOp2()->gtGetOp1()->OperIs(GT_STORE_LCL_VAR))
+        {
+            *scalar = 1;
+            *lclNum = op->gtGetOp2()->gtGetOp1()->AsLclVar()->GetLclNum();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
-    if (internalOp->OperIs(GT_LSH) && internalOp->gtGetOp2()->IsIntegralConst())
+    if (op->OperIs(GT_LSH) && op->gtGetOp2()->IsIntegralConst())
     {
-        GenTree* op1         = internalOp->gtGetOp1();
-        ssize_t  temp_scalar = static_cast<ssize_t>(pow(2, internalOp->gtGetOp2()->AsIntConCommon()->IconValue()));
+        GenTree* op1         = op->gtGetOp1();
+        ssize_t  temp_scalar = static_cast<ssize_t>(pow(2, op->gtGetOp2()->AsIntConCommon()->IconValue()));
 
         if (op1->OperIs(GT_LCL_VAR))
         {
@@ -15531,10 +15542,10 @@ bool Compiler::fgMorphOperIsIntScalarMulLclVar(GenTree* op, ssize_t* scalar, uns
             return false;
         }
     }
-    else if (internalOp->OperIs(GT_MUL))
+    else if (op->OperIs(GT_MUL))
     {
-        GenTree* op1 = internalOp->gtGetOp1();
-        GenTree* op2 = internalOp->gtGetOp2();
+        GenTree* op1 = op->gtGetOp1();
+        GenTree* op2 = op->gtGetOp2();
 
         if (op1->IsIntegralConst() && op2->OperIs(GT_LCL_VAR))
         {
@@ -15561,10 +15572,10 @@ bool Compiler::fgMorphOperIsIntScalarMulLclVar(GenTree* op, ssize_t* scalar, uns
             return false;
         }
     }
-    else if (internalOp->OperIs(GT_XOR))
+    else if (op->OperIs(GT_XOR))
     {
-        GenTree* op1 = internalOp->gtGetOp1();
-        GenTree* op2 = internalOp->gtGetOp2();
+        GenTree* op1 = op->gtGetOp1();
+        GenTree* op2 = op->gtGetOp2();
 
         if (op1->OperIs(GT_LCL_VAR) && op2->OperIs(GT_LCL_VAR) &&
             op1->AsLclVar()->GetLclNum() == op2->AsLclVar()->GetLclNum())
@@ -15588,10 +15599,6 @@ bool Compiler::fgMorphOperIsIntScalarMulLclVar(GenTree* op, ssize_t* scalar, uns
         return false;
     }
 
-    if (reverseSign)
-    {
-        *scalar = -(*scalar);
-    }
     return true;
 }
 
@@ -15687,11 +15694,12 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
     if (foldCount == 0)
     {
         return gtNewOperNode(GT_XOR, tree->TypeGet(), op1,
-                             op1->OperIs(GT_LCL_VAR) ? op1 : gtCloneExpr(op1->gtEffectiveVal()));
+                             gtCloneExpr(op1->OperIs(GT_LCL_VAR) ? op1 : op1->gtEffectiveVal()));
     }
     else if (foldCount == -1)
     {
-        return gtNewOperNode(GT_NEG, tree->TypeGet(), op1->OperIs(GT_MUL, GT_LSH, GT_XOR) ? op1->gtGetOp1() : op1);
+        return gtNewOperNode(GT_SUB, tree->TypeGet(), gtNewZeroConNode(tree->TypeGet()),
+                             op1->OperIs(GT_MUL, GT_LSH, GT_XOR) ? op1->gtGetOp1() : op1);
     }
 
     return gtNewOperNode(GT_MUL, tree->TypeGet(), op1->OperIs(GT_MUL, GT_LSH, GT_XOR) ? op1->gtGetOp1() : op1,
