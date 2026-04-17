@@ -15620,9 +15620,9 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
         return tree;
     }
 
-    genTreeOps targetOp = tree->OperGet();
-    GenTree* lclVarTree = tree->AsOp()->gtOp2;
-    GenTree* consTree   = tree->AsOp()->gtOp1;
+    genTreeOps targetOp   = tree->OperGet();
+    GenTree*   lclVarTree = tree->AsOp()->gtOp2;
+    GenTree*   consTree   = tree->AsOp()->gtOp1;
 
     GenTree*     op1       = consTree;
     ssize_t      op1Scalar = 0;
