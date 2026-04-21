@@ -15657,9 +15657,8 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
         return tree;
     }
 
-    ssize_t      foldCount          = 0;
-    unsigned int lclNum             = op2lclNum;
-    ssize_t      addSubsChainLength = 0;
+    ssize_t      foldCount = 0;
+    unsigned int lclNum    = op2lclNum;
 
     // Search for pattern of shape ADD(SUB(ADD(lclNum, lclNum), lclNum), lclNum).
     while (true)
@@ -15676,7 +15675,6 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
             {
                 foldCount += op1Scalar - op2Scalar;
             }
-            addSubsChainLength = +op1Scalar + op2Scalar - 1;
             break;
         }
         // ADD(SUB(X, Y), lclNum), keep descending
@@ -15694,7 +15692,6 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
             targetOp = op1->OperGet();
             op2      = op1->AsOp()->gtOp2;
             op1      = op1->AsOp()->gtOp1;
-            addSubsChainLength += op2Scalar - 1;
         }
         // Any other case is a pattern we won't attempt to fold for now.
         else
@@ -15715,10 +15712,6 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
     {
         return gtNewOperNode(GT_SUB, tree->TypeGet(), gtNewZeroConNode(tree->TypeGet()),
                              op1->OperIs(GT_MUL, GT_LSH, GT_XOR) ? op1->gtGetOp1() : op1);
-    }
-    else if (foldCount == 2 && addSubsChainLength == 1 && targetOp == GT_ADD)
-    {
-        return tree;
     }
 
     return gtNewOperNode(GT_MUL, tree->TypeGet(), op1->OperIs(GT_MUL, GT_LSH, GT_XOR) ? op1->gtGetOp1() : op1,
