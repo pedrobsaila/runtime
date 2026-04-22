@@ -2669,15 +2669,6 @@ GenTree* Compiler::optVNBasedFoldExpr_AddSub(BasicBlock* block, GenTree* parent,
 {
     assert(tree->OperIs(GT_ADD, GT_SUB));
 
-#if !defined(TARGET_64BIT) && !defined(TARGET_WASM)
-    // Transforming 64-bit ADD/SUB to 64-bit MUL on 32-bit system results in replacing
-    // ADD/SUB ops with a helper function call. Don't apply optimization in that case.
-    if (tree->TypeIs(TYP_LONG))
-    {
-        return nullptr;
-    }
-#endif // !defined(TARGET_64BIT) && !defined(TARGET_WASM)
-
     ValueNumPair vnPair = tree->gtVNPair;
     ValueNum     vnCnv  = vnStore->VNConservativeNormalValue(vnPair);
     VNFuncApp    vnFuncApp;

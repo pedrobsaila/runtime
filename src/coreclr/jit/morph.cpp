@@ -15641,6 +15641,15 @@ GenTree* Compiler::fgMorphReduceAddOrSubOps(GenTree* tree)
         return tree;
     }
 
+#if !defined(TARGET_64BIT) && !defined(TARGET_WASM)
+    // Transforming 64-bit ADD/SUB to 64-bit MUL on 32-bit system results in replacing
+    // ADD/SUB ops with a helper function call. Don't apply optimization in that case.
+    if (tree->TypeIs(TYP_LONG))
+    {
+        return tree;
+    }
+#endif // !defined(TARGET_64BIT) && !defined(TARGET_WASM)
+
     genTreeOps targetOp   = tree->OperGet();
     GenTree*   lclVarTree = tree->AsOp()->gtOp2;
     GenTree*   consTree   = tree->AsOp()->gtOp1;
